@@ -13,6 +13,7 @@ typedef struct renderID {
   // unsigned int EBO;
 }renderID;
 
+// dont forget openGL fails sometimes silently yeaa 
 
 // TODO implment some debuggin printf function
 
@@ -44,6 +45,7 @@ void print_opengl_infos() {
 }
 
 
+// yea the only input we need is to escape from here aaahhhh xD 
 void processInput(GLFWwindow *window){
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
       glfwSetWindowShouldClose(window, true);
@@ -56,6 +58,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 
 // TODO : How do i get the current height and width
+// for debug and re rendering stuff on the window 
 GLFWwindow* init_Window() {
   if (!glfwInit()) {
       printf("Failed to initialize GLFW\n");
@@ -126,10 +129,12 @@ renderID createMesh() {
   glBindVertexArray(VAO);
  
   float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-     0.0f,  0.5f, 0.0f
-  };  
+    // positions         // colors
+     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+  };
+
   // unsigned int indices[] = {
   //     0, 1, 3, 
   //     1, 2, 3   
@@ -140,18 +145,18 @@ renderID createMesh() {
   glBindBuffer(GL_ARRAY_BUFFER, VBO);  
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   
-  // unsigned int EBO;
-  // glGenBuffers(1, &EBO);
-  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
-  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-  
-
   // Descripton of the Data , so the GPU can parse it 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0); 
+  // position attribute
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  
+  // color attribute
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+  glEnableVertexAttribArray(1);
+  
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  
+
   renderID meshID;  
   meshID.VAO = VAO;
   // meshID.EBO = EBO;
@@ -173,7 +178,7 @@ unsigned int loadShaderProgram (char *path , char *path2) {
   if (!success) {
       glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
       printf("Vertex Shader Error:\n%s\n", infoLog);
-      // in openGL 0 is an Invalid id 
+      // in openGL 0 is an invalid id 
       // we use that later to exit the program
       return 0;
   } 
@@ -214,17 +219,13 @@ void render(unsigned int shaderProgram ,unsigned int VAO ) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  float timeValue = glfwGetTime();
-  float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-  float redValue = (cos(timeValue) / 2.0f) + 0.5f;
-  float blueValue = (tan(timeValue) / 2.0f) + 0.5f;
-  int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-  
+  // float timeValue = glfwGetTime();
+  // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+  // int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
   glUseProgram(shaderProgram);
+  // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
   glBindVertexArray(VAO);
-  glUniform4f(vertexColorLocation, redValue, greenValue, 0.0f, 1.0f);
-  // thats we use EBO'S 
-  // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  // glUniform4f(vertexColorLocation, redValue, greenValue, 0.0f, 1.0f);
   glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
 }
@@ -259,6 +260,9 @@ int main() {
   return 0; 
 }
 
-// PS research how to handle Memory leaks or perse Memory in GPU 
+// PS research 
+// 1 .how to handle Memory leaks or perse Memory in GPU 
 // glDeleteBuffers(1, &(meshIDstuff.VBO)); it seems you could delelte the VBO in create Mesh 
 // because the VAO hold the infromation where the memory is 
+// 2. glMultiDrawElementsIndirect for multi stuff yea 
+
