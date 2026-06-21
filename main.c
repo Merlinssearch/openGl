@@ -236,7 +236,7 @@ int main() {
   // init stuff
   // unsigned int VAO = createMesh();
   renderID meshIDstuff = createMesh();
-  unsigned int shaderProgram = loadShaderProgram("vertexshader.glsl" , "fragmentShaderSource.glsl"); 
+  unsigned int shaderProgram = loadShaderProgram("shader/vertexshader.glsl" , "shader/fragmentShaderSource.glsl"); 
   
   if (shaderProgram == 0) {
     printf("function loadShaderProgram failed , have fun debuggin <3 \n");
