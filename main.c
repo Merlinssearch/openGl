@@ -13,6 +13,9 @@ typedef struct renderID {
   // unsigned int EBO;
 }renderID;
 
+
+
+
 // dont forget openGL fails sometimes silently yeaa 
 
 // TODO implment some debuggin printf function
@@ -209,7 +212,6 @@ unsigned int loadShaderProgram (char *path , char *path2) {
       printf("Shader Program Link Error:\n%s\n", infoLog);
       return 0;
   }
-  
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);   
   return shaderProgram;
@@ -218,12 +220,14 @@ unsigned int loadShaderProgram (char *path , char *path2) {
 void render(unsigned int shaderProgram ,unsigned int VAO ) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
-
-  // float timeValue = glfwGetTime();
-  // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-  // int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+  
+  float timeValue = glfwGetTime();
+  int vertexColorLocation = glGetUniformLocation(shaderProgram, "time");
+  
   glUseProgram(shaderProgram);
-  // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+  // glUniform4f for GLOBAL variables between shader programms
+  glUniform1f(vertexColorLocation,timeValue);
+  
   glBindVertexArray(VAO);
   // glUniform4f(vertexColorLocation, redValue, greenValue, 0.0f, 1.0f);
   glDrawArrays(GL_TRIANGLES, 0 , 3 );
@@ -231,6 +235,12 @@ void render(unsigned int shaderProgram ,unsigned int VAO ) {
 }
 
 int main() {
+  
+  const char *ShadersSourceCodePath[2]; 
+
+  ShadersSourceCodePath[0] = "shader/vertexshader.glsl";
+  ShadersSourceCodePath[1] = "shader/fragmentShaderSource.glsl"; 
+
   GLFWwindow *window = init_Window(); 
   if (!window) return -1;
   print_opengl_infos();
@@ -253,6 +263,7 @@ int main() {
   }
   
   // cleanUP
+  // in create mesh function ? 
   glDeleteVertexArrays(1, &(meshIDstuff.VAO));
   glDeleteBuffers(1, &(meshIDstuff.VBO));
   glDeleteProgram(shaderProgram);
