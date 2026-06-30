@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-
 typedef struct renderID {
   unsigned int VBO;
   unsigned int VAO;
@@ -95,8 +94,6 @@ GLFWwindow* init_Window() {
 } 
 
 // dont forget to free this 
-// also this code seams a little bit sloppy 
-// fix later for now it works
 char *getFileContent (char *file) {
   struct stat st;
   // stat(file, &st);
@@ -173,22 +170,20 @@ renderID createMesh() {
 }
 
 
-unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSourceCodeCount) {
-  
+unsigned int loadShaderProgram (shaderInfo ShadersSourceCode, int ShaderSourceCodeCount) {
+  // Pre variable to link shader
   unsigned int shaderProgram = glCreateProgram(); 
   
   char infoLog[512];
   int success;
   for (int i = 0 ; i < ShaderSourceCodeCount ; i++ ) {
-    // do i need to free ShadersSource ?
-    // i think so bro , its the pointer that getFileContent gives u back and the 
-    // function allocate some memory on the heap 
-    const char *ShaderSource = getFileContent((char*)ShadersSourceCode[i].filePath);
+    // do i need to free this ?
+    const char *ShaderSource = getFileContent(ShadersSourceCode[i].path);
     unsigned int Shader = glCreateShader(ShadersSourceCode[i].type);
     glShaderSource(Shader, 1, &ShaderSource, NULL);
     glCompileShader(Shader);
     free((char*)ShaderSource);
-    ShaderSource = NULL;   
+    vertexShaderSource = NULL;   
 
     glGetShaderiv(Shader, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -199,7 +194,7 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
         return 0;
     }
     glAttachShader(shaderProgram, Shader);
-    glDeleteShader(Shader); // ps. is this the right time to delete them ?? ?!? ?
+    glDeleteShader(Shader);
   } 
   
   glLinkProgram(shaderProgram);
@@ -219,12 +214,12 @@ void render(unsigned int shaderProgram ,unsigned int VAO ) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   
-  float timeValue = glfwGetTime();
-  int vertexColorLocation = glGetUniformLocation(shaderProgram, "time");
-
+  // float timeValue = glfwGetTime();
+  // int vertexColorLocation = glGetUniformLocation(shaderProgram, "time");
+  //
   glUseProgram(shaderProgram);
   // glUniform4f for GLOBAL variables between shader programms
-  glUniform1f(vertexColorLocation,timeValue);
+  // glUniform1f(vertexColorLocation,timeValue);
   
   glBindVertexArray(VAO);
   // glUniform4f(vertexColorLocation, redValue, greenValue, 0.0f, 1.0f);
@@ -237,7 +232,7 @@ int main() {
   shaderInfo ShadersSourceCode[] = {
     {GL_VERTEX_SHADER, "shader/vertexshader.glsl"},
     {GL_FRAGMENT_SHADER , "shader/fragmentshaderSource.glsl"}
-  };
+  } 
   
   size_t ShaderSourceCodeCount = sizeof(ShadersSourceCode) / sizeof(ShadersSourceCode[0]); 
 
