@@ -7,6 +7,18 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "./dependencies/stb_image.h"
+
+// note to my self STOP USING DIFFRENT CASE EITHER UPPER CASE OR LOWER SNAKE CASE BRO WHAT THE HELL !!!!! 
+// or use a fucking lsp 
+
+typedef struct  {
+  float *vertices;
+  int attributeCounter; // 
+  int *size;
+  size_t bufferSize;
+}vertexAttributes;
 
 typedef struct renderID {
   unsigned int VBO;
@@ -21,33 +33,36 @@ typedef struct shaderInfo {
 
 // dont forget openGL fails sometimes silently yeaa 
 
-// TODO implment some debuggin printf function
-
 void print_opengl_infos() {
-  printf("GPU Vendor  : %s\n", glGetString(GL_VENDOR));
-  printf("GPU Renderer: %s\n", glGetString(GL_RENDERER));
-  printf("GL Version  : %s\n", glGetString(GL_VERSION));
-  printf("GLSL Version: %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+  printf("========================================================================\n"); 
+  printf("Debug Info \n");
+  printf("========================================================================\n"); 
+  printf("GPU Vendor                    : %s\n", glGetString(GL_VENDOR));
+  printf("GPU Renderer                  : %s\n", glGetString(GL_RENDERER));
+  printf("GL Version                    : %s\n", glGetString(GL_VERSION));
+  printf("GLSL Version                  : %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
   GLint max_attributes;
   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_attributes);
-  printf("Max Vertex Attributes:           %d\n", max_attributes);
+  printf("Max Vertex Attributes         : %d\n", max_attributes);
 
   GLint max_texture_size;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-  printf("Max Texture Size:                %d x %d\n", max_texture_size, max_texture_size);
+  printf("Max Texture Size              : %d x %d\n", max_texture_size, max_texture_size);
 
   GLint max_texture_units;
   glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_texture_units);
-  printf("Max Combined Texture Units:      %d\n", max_texture_units);
+  printf("Max Combined Texture Units    : %d\n", max_texture_units);
 
   GLint max_color_attachments;
   glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
-  printf("Max FBO Color Attachments:       %d\n", max_color_attachments);
+  printf("Max FBO Color Attachments     : %d\n", max_color_attachments);
   
   GLint max_uniforms;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &max_uniforms);
-  printf("Max Vertex Uniform Components:   %d\n", max_uniforms);
+  printf("Max Vertex Uniform Components : %d\n", max_uniforms);
+  
+  printf("========================================================================\n"); 
 }
 
 
@@ -61,7 +76,6 @@ void processInput(GLFWwindow *window){
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
-
 
 // TODO : How do i get the current height and width
 // for debug and re rendering stuff on the window 
@@ -127,40 +141,33 @@ char *getFileContent (char *file) {
   return content; 
 }  
 
-renderID createMesh() {
-  // Descripton of the Data 
-  // how does the GPU parse the Data 
-  // where is Postion     , Color       ,etc 
-  //          Attribute 1 , Attribute 2 
-  unsigned int VAO;
+renderID createMesh(vertexAttributes attributesObject) {
+  
+  unsigned int VAO , VBO;
   glGenVertexArrays(1, &VAO);   
   glBindVertexArray(VAO);
- 
-  float vertices[] = {
-    // positions         // colors
-     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
-  };
-
-  // unsigned int indices[] = {
-  //     0, 1, 3, 
-  //     1, 2, 3   
-  // };
-  // actual Data 
-  unsigned int VBO;
+  
   glGenBuffers(1, &VBO);  
   glBindBuffer(GL_ARRAY_BUFFER, VBO);  
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  glBufferData(GL_ARRAY_BUFFER, attributesObject.bufferSize , attributesObject.vertices, GL_STATIC_DRAW);
   
-  // Descripton of the Data , so the GPU can parse it 
-  // position attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
-  
-  // color attribute
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
-  glEnableVertexAttribArray(1);
+  int stride = 0;
+  for (int i = 0 ; i < attributesObject.attributeCounter ; i++) {
+      stride += attributesObject.size[i];
+  } 
+  int offset = 0; 
+  for (int id = 0 ; id < attributesObject.attributeCounter ; id++) {
+    // glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+    glVertexAttribPointer(id,
+                          attributesObject.size[id] , 
+                          GL_FLOAT, 
+                          GL_FALSE, 
+                          stride * sizeof(float), 
+                          (void*)(offset*sizeof(float)));
+    glEnableVertexAttribArray(id);
+    offset += attributesObject.size[id];
+  } 
   
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -170,6 +177,7 @@ renderID createMesh() {
   // meshID.EBO = EBO;
   meshID.VBO = VBO;
   return meshID;
+
 }
 
 
@@ -184,6 +192,10 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
     // i think so bro , its the pointer that getFileContent gives u back and the 
     // function allocate some memory on the heap 
     const char *ShaderSource = getFileContent((char*)ShadersSourceCode[i].filePath);
+    if (!ShaderSource){
+      printf("loadShaderProgram failed !\n");
+      return 0;
+    }
     unsigned int Shader = glCreateShader(ShadersSourceCode[i].type);
     glShaderSource(Shader, 1, &ShaderSource, NULL);
     glCompileShader(Shader);
@@ -192,14 +204,18 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
 
     glGetShaderiv(Shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(Shader, 512, NULL, infoLog);
-        printf("Vertex Shader Error:\n%s\n", infoLog);
-        // in openGL 0 is an invalid id 
-        // we use that later to exit the program
-        return 0;
+      glGetShaderInfoLog(Shader, 512, NULL, infoLog);
+      printf("Vertex Shader Error:\n%s\n", infoLog);
+      // in openGL 0 is an invalid id 
+      // we use that later to exit the program
+      glDeleteShader(Shader);
+      glDeleteProgram(shaderProgram);
+      return 0;
     }
     glAttachShader(shaderProgram, Shader);
-    glDeleteShader(Shader); // ps. is this the right time to delete them ?? ?!? ?
+    glDeleteShader(Shader);  
+    // ps. is this the right time to delete them ?? ?!? ?
+    // because when its compiled i dont need the source code or am i dumb ? 
   } 
   
   glLinkProgram(shaderProgram);
@@ -215,6 +231,7 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
   return shaderProgram;
 }
 
+
 void render(unsigned int shaderProgram ,unsigned int VAO ) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -227,12 +244,47 @@ void render(unsigned int shaderProgram ,unsigned int VAO ) {
   glUniform1f(vertexColorLocation,timeValue);
   
   glBindVertexArray(VAO);
-  // glUniform4f(vertexColorLocation, redValue, greenValue, 0.0f, 1.0f);
+  // bro stop these fucking magic numbers what does 0 or 3 means ???? 
   glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
 }
 
+// renderID loadTexture (char *filePath) {
+//
+//
+// } 
+
 int main() {
+  
+  ////////////////////////////////////////////////////////////////////
+  // vertices Stuff (maybe move this shit somewhere else for better reading = )   
+  ////////////////////////////////////////////////////////////////////
+  
+  float vertices[] = {
+    // positions 3float  // colors 3 floats
+     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+  };
+  int attributeCounter = 2 ; 
+  int size[] = {3,3};
+  vertexAttributes triangle = {
+    .vertices = vertices,  
+    .attributeCounter = attributeCounter,
+    .size = size,
+    .bufferSize = sizeof(vertices),
+  };
+  //////////////////////////////////
+  // Window Stuff  
+  //////////////////////////////////
+
+  GLFWwindow *window = init_Window(); 
+  if (!window) return -1;
+  print_opengl_infos();
+  
+  //////////////////////////////////
+  // loadShaderProgram
+  //////////////////////////////////
   
   shaderInfo ShadersSourceCode[] = {
     {GL_VERTEX_SHADER, "shader/vertexshader.glsl"},
@@ -240,12 +292,7 @@ int main() {
   };
   
   size_t ShaderSourceCodeCount = sizeof(ShadersSourceCode) / sizeof(ShadersSourceCode[0]); 
-
-  GLFWwindow *window = init_Window(); 
-  if (!window) return -1;
-  print_opengl_infos();
-  
-  renderID meshIDstuff = createMesh();
+  renderID meshIDstuff = createMesh(triangle);
   unsigned int shaderProgram = loadShaderProgram(ShadersSourceCode, ShaderSourceCodeCount); 
   
   if (shaderProgram == 0) {
@@ -253,7 +300,10 @@ int main() {
     return -1 ;
   } 
   
+  //////////////////////////////////
   // main loop obviously
+  //////////////////////////////////
+  
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
     render(shaderProgram, meshIDstuff.VAO);
