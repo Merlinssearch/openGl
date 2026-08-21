@@ -18,14 +18,18 @@ typedef struct  {
   int attributeCounter; // 
   int *size;
   size_t bufferSize;
+  unsigned int *indices; 
+  size_t indicesSize;
 }vertexAttributes;
 
+// Todo: implement EBO in create mesh
 typedef struct renderID {
   unsigned int VBO;
   unsigned int VAO;
-  // unsigned int EBO;
+  unsigned int EBO; 
 }renderID;
 
+// For Shader SourceCode
 typedef struct shaderInfo {
   unsigned int type;
   const char *filePath; 
@@ -34,35 +38,35 @@ typedef struct shaderInfo {
 // dont forget openGL fails sometimes silently yeaa 
 
 void print_opengl_infos() {
-  printf("========================================================================\n"); 
+  printf("==================================================================\n"); 
   printf("Debug Info \n");
-  printf("========================================================================\n"); 
-  printf("GPU Vendor                    : %s\n", glGetString(GL_VENDOR));
-  printf("GPU Renderer                  : %s\n", glGetString(GL_RENDERER));
-  printf("GL Version                    : %s\n", glGetString(GL_VERSION));
-  printf("GLSL Version                  : %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+  printf("==================================================================\n"); 
+  printf("GPU Vendor                   : %s\n", glGetString(GL_VENDOR));
+  printf("GPU Renderer                 : %s\n", glGetString(GL_RENDERER));
+  printf("GL Version                   : %s\n", glGetString(GL_VERSION));
+  printf("GLSL Version                 : %s\n\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
   GLint max_attributes;
   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_attributes);
-  printf("Max Vertex Attributes         : %d\n", max_attributes);
+  printf("Max Vertex Attributes        : %d\n", max_attributes);
 
   GLint max_texture_size;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-  printf("Max Texture Size              : %d x %d\n", max_texture_size, max_texture_size);
+  printf("Max Texture Size             : %d x %d\n", max_texture_size, max_texture_size);
 
   GLint max_texture_units;
   glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_texture_units);
-  printf("Max Combined Texture Units    : %d\n", max_texture_units);
+  printf("Max Combined Texture Units   : %d\n", max_texture_units);
 
   GLint max_color_attachments;
   glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
-  printf("Max FBO Color Attachments     : %d\n", max_color_attachments);
+  printf("Max FBO Color Attachments    : %d\n", max_color_attachments);
   
   GLint max_uniforms;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &max_uniforms);
-  printf("Max Vertex Uniform Components : %d\n", max_uniforms);
+  printf("Max Vertex Uniform Components: %d\n", max_uniforms);
   
-  printf("========================================================================\n"); 
+  printf("==================================================================\n"); 
 }
 
 
@@ -78,7 +82,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 // TODO : How do i get the current height and width
-// for debug and re rendering stuff on the window 
+// if its dynamic , like in hyprland 
+
 GLFWwindow* init_Window() {
   if (!glfwInit()) {
       printf("Failed to initialize GLFW\n");
@@ -109,8 +114,7 @@ GLFWwindow* init_Window() {
 } 
 
 // dont forget to free this 
-// also this code seams a little bit sloppy 
-// fix later for now it works
+
 char *getFileContent (char *file) {
   struct stat st;
   // stat(file, &st);
@@ -143,7 +147,7 @@ char *getFileContent (char *file) {
 
 renderID createMesh(vertexAttributes attributesObject) {
   
-  unsigned int VAO , VBO;
+  unsigned int VAO , VBO , EBO;
   glGenVertexArrays(1, &VAO);   
   glBindVertexArray(VAO);
   
@@ -152,34 +156,38 @@ renderID createMesh(vertexAttributes attributesObject) {
 
   glBufferData(GL_ARRAY_BUFFER, attributesObject.bufferSize , attributesObject.vertices, GL_STATIC_DRAW);
   
+  glGenBuffers(1, &EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, attributesObject.indicesSize, attributesObject.indices, GL_STATIC_DRAW);
+
   int stride = 0;
   for (int i = 0 ; i < attributesObject.attributeCounter ; i++) {
       stride += attributesObject.size[i];
   } 
   int offset = 0; 
   for (int id = 0 ; id < attributesObject.attributeCounter ; id++) {
-    // glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+    //////////////////////////////////////////////////////////
+    // Definition : glVertexAttribPointer(index, size, type, normalized, stride, pointer);
     glVertexAttribPointer(id,
                           attributesObject.size[id] , 
                           GL_FLOAT, 
                           GL_FALSE, 
                           stride * sizeof(float), 
-                          (void*)(offset*sizeof(float)));
+                          (void*)(offset*sizeof(float))
+                          );
+    //////////////////////////////////////////////////////////
     glEnableVertexAttribArray(id);
     offset += attributesObject.size[id];
   } 
   
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-
   renderID meshID;  
   meshID.VAO = VAO;
-  // meshID.EBO = EBO;
+  meshID.EBO = EBO;
   meshID.VBO = VBO;
   return meshID;
-
 }
-
 
 unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSourceCodeCount) {
   
@@ -226,6 +234,7 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
       printf("Shader Program Link Error:\n%s\n", infoLog);
       return 0;
   }
+  // shit i forgot why i comment this
   // glDeleteShader(vertexShader);
   // glDeleteShader(fragmentShader);   
   return shaderProgram;
@@ -245,11 +254,15 @@ void render(unsigned int shaderProgram ,unsigned int VAO ) {
   
   glBindVertexArray(VAO);
   // bro stop these fucking magic numbers what does 0 or 3 means ???? 
-  glDrawArrays(GL_TRIANGLES, 0 , 3 );
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  // glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
 }
 
-// renderID loadTexture (char *filePath) {
+
+
+// void loadTexture (renderID renderObject , char *imagePath) {
+//
 //
 //
 // } 
@@ -258,22 +271,36 @@ int main() {
   
   ////////////////////////////////////////////////////////////////////
   // vertices Stuff (maybe move this shit somewhere else for better reading = )   
+  // maybe using inline function to init stuff ? 
   ////////////////////////////////////////////////////////////////////
+  // for VBO
   
   float vertices[] = {
-    // positions 3float  // colors 3 floats
-     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+    // positions          // colors           // texture coords  --> Attributes 
+     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f, // top right
+     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.55f, 0.45f, // bottom right
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.45f, 0.45f, // bottom left
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.45f, 0.55f  // top left 
   };
-  int attributeCounter = 2 ; 
-  int size[] = {3,3};
+  
+  // indices for EBO 
+  unsigned int indices[] = {  // note that we start from 0!
+      0, 1, 3,   // first triangle
+      1, 2, 3    // second triangle
+  };
+
+  int attributeCounter = 3 ; 
+  int size[] = {3, 3 , 2};
+  
   vertexAttributes triangle = {
     .vertices = vertices,  
+    .indices = indices,
     .attributeCounter = attributeCounter,
-    .size = size,
+    .size = size,  // Attribute size 
     .bufferSize = sizeof(vertices),
+    .indicesSize = sizeof(indices),
   };
+
   //////////////////////////////////
   // Window Stuff  
   //////////////////////////////////
@@ -310,9 +337,9 @@ int main() {
     glfwSwapBuffers(window); // fenster mgmt
     glfwPollEvents(); // input log que 
   }
-  
   // cleanUP
-  // in create mesh function ? 
+  // maybe better in create mesh function ? 
+  
   glDeleteVertexArrays(1, &(meshIDstuff.VAO));
   glDeleteBuffers(1, &(meshIDstuff.VBO));
   glDeleteProgram(shaderProgram);
