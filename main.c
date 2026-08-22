@@ -109,7 +109,7 @@ GLFWwindow* init_Window() {
   
   glViewport(0, 0, 800, 600);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  
-  
+  glEnable(GL_DEPTH_TEST); // for 3d stuff
   return window;
 } 
 
@@ -240,11 +240,11 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
   return shaderProgram;
 }
 
+// TODO : A betch process for diffrent object
 
-void render(unsigned int shaderProgram ,unsigned int VAO ) {
+void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
-  
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   float timeValue = glfwGetTime();
   int vertexColorLocation = glGetUniformLocation(shaderProgram, "time");
 
@@ -254,7 +254,7 @@ void render(unsigned int shaderProgram ,unsigned int VAO ) {
   
   glBindVertexArray(VAO);
   // bro stop these fucking magic numbers what does 0 or 3 means ???? 
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
   // glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
 }
@@ -274,23 +274,49 @@ int main() {
   // maybe using inline function to init stuff ? 
   ////////////////////////////////////////////////////////////////////
   // for VBO
-  
-  float vertices[] = {
-    // positions          // colors           // texture coords  --> Attributes 
-     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f, // top right
-     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.55f, 0.45f, // bottom right
-    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.45f, 0.45f, // bottom left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.45f, 0.55f  // top left 
-  };
-  
-  // indices for EBO 
-  unsigned int indices[] = {  // note that we start from 0!
-      0, 1, 3,   // first triangle
-      1, 2, 3    // second triangle
-  };
+  // TODO : how to implement Object like cubes ????
+  /* float vertices[] = { */
+  /*   // positions          // colors           // texture coords  --> Attributes  */
+  /*    0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f, // top right */
+  /*    0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.55f, 0.45f, // bottom right */
+  /*   -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.45f, 0.45f, // bottom left */
+  /*   -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.45f, 0.55f  // top left  */
+  /* }; */
 
-  int attributeCounter = 3 ; 
-  int size[] = {3, 3 , 2};
+  /* // indices for EBO  */
+  /* unsigned int indices[] = {  // note that we start from 0! */
+  /*     0, 1, 3,   // first triangle */
+  /*     1, 2, 3    // second triangle */
+  /* }; */
+  float vertices[] = {
+    -0.5, 0.5, 0.5, 1.0, 0.0, 0.0,// Front Top Left		- Red	- 0
+    0.5,  0.5, 0.5, 0.0, 1.0, 0.0,// Front Top Right		- Green	- 1
+    0.5, -0.5, 0.5, 0.0, 0.0, 1.0,// Front Bottom Right		- Blue	- 2
+    -0.5,-0.5, 0.5, 0.0, 1.0, 1.0,// Front Bottom Left		- Cyan	- 3
+    -0.5, 0.5,-0.5, 1.0, 0.0, 1.0,// Back Top Left		- Pink	- 4
+    0.5,  0.5,-0.5, 1.0, 1.0, 0.0,// Back Top Right		- Yellow- 5
+    0.5, -0.5,-0.5, 0.1, 0.1, 0.1,// Back Bottom Right		- White - 6
+    -0.5,-0.5,-0.5, 1.0, 1.0, 1.0,// Back Bottom Left		- Gray  - 7
+};
+
+unsigned int indices[] = {
+  0,3,2,//Front
+  2,1,0,
+  1,5,6,//Right
+  6,2,1,
+  5,4,7,//Left
+  7,6,5,
+  4,7,3,//Back
+  3,0,4,
+  4,5,1,//Top
+  1,0,4,
+  3,2,6,//Bottom
+  6,7,3,
+};
+
+
+  int attributeCounter = 2 ;
+  int size[] = {3, 3};
   
   vertexAttributes triangle = {
     .vertices = vertices,  
@@ -300,7 +326,7 @@ int main() {
     .bufferSize = sizeof(vertices),
     .indicesSize = sizeof(indices),
   };
-
+  unsigned int indicesCounter =  triangle.indicesSize / sizeof(unsigned int);
   //////////////////////////////////
   // Window Stuff  
   //////////////////////////////////
@@ -333,7 +359,7 @@ int main() {
   
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
-    render(shaderProgram, meshIDstuff.VAO);
+    render(shaderProgram, meshIDstuff.VAO , indicesCounter);
     glfwSwapBuffers(window); // fenster mgmt
     glfwPollEvents(); // input log que 
   }
