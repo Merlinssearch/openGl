@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#define STB_IMAGE_IMPLEMENTATION
 #include "./dependencies/stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
 
-// note to my self STOP USING DIFFRENT CASE EITHER UPPER CASE OR LOWER SNAKE CASE BRO WHAT THE HELL !!!!! 
+// note to my self STOP USING DIFFRENT CASE EITHER UPPER CASE OR LOWER SNAKE CASE BRO WHAT THE HELL !!!!!
 // or use a fucking lsp 
 
 typedef struct  {
