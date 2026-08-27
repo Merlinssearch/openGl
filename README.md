@@ -9,7 +9,7 @@ I gave an LLM photos of my Hand written Note book and it Transcribed it into an 
 Yea i am one of these guys who love Hand writting <3  
 PS.: Code thats written by AI will be marked as AI written, i try not using AI as much as i can.  
 I mostly used it to read through DOCS.
-
+Ps . These Notes look like shit i will rewrite them 
 ---
 
 # OpenGL Learning Notes
