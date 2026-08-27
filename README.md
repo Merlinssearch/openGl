@@ -1,9 +1,10 @@
-TODO : 
-1. Trying to write an own Rendering Engine .
-2. Convert it to an Own Game Engine
-3. Drink Wine and smoke a cigarett on what i accomplished <3 
+TODO:
+1. Trying to write an own Rendering Engine.
+2. Convert it to an Own Game Engine.
+3. Drink Wine and smoke a cigarette on what I accomplished <3
 
-```markdown
+---
+
 # OpenGL Learning Notes
 
 I gave an LLM photos of my Hand written Note book and it Transcribed it into an MD file. 
@@ -30,6 +31,7 @@ Yea i am one of these guys who love Hand writting <3
 ## Vertex Input & OpenGL Objects
 
 ### Basic Data Layout
+
 We take a chunk of data and send it to the GPU:
 
 ```cpp
@@ -38,10 +40,9 @@ float vertices[] = {
     x2, y2, z2,  // Point 2
     x3, y3, z3   // Point 3
 };
-
 ```
 
-* **Geometry:** 3 Vertices, 3 Edges, 1 Face.
+- **Geometry:** 3 Vertices, 3 Edges, 1 Face.
 
 ### Core OpenGL Objects
 
@@ -55,7 +56,6 @@ glBufferData(...); // Stores: [x1|y1|z1|x2|y2|z2|x3|y3|z3] (3 Floats per positio
 
 glGenVertexArrays(1, &myVAO);
 glBindVertexArray(myVAO);
-
 ```
 
 ---
@@ -64,8 +64,8 @@ glBindVertexArray(myVAO);
 
 ### Vertex & Fragment Shader Lifecycle
 
-* **Vertex Shader:** Transforms positions.
-* **Fragment Shader:** Transforms colors.
+- **Vertex Shader:** Transforms positions.
+- **Fragment Shader:** Transforms colors.
 
 ```cpp
 // 1. Send source code & compile
@@ -77,15 +77,14 @@ GLuint programID = glCreateProgram();
 glAttachShader(programID, vertexShader);
 glAttachShader(programID, fragmentShader);
 glLinkProgram(programID);
-
 ```
 
-### Data Transfer (CPU $\rightarrow$ GPU)
+### Data Transfer (CPU → GPU)
 
 To pass simple, global data between CPU and Shader/GPU, use **Uniforms**.
 
-* **Uniforms:** Global variables shared between linked shader programs.
-* **Accessing Uniforms:** Managed via `glGetUniformLocation()` and updated via `glUniform*()` (e.g., `glUniform1f`, `glUniformMatrix4fv`).
+- **Uniforms:** Global variables shared between linked shader programs.
+- **Accessing Uniforms:** Managed via `glGetUniformLocation()` and updated via `glUniform*()` (e.g., `glUniform1f`, `glUniformMatrix4fv`).
 
 ---
 
@@ -103,13 +102,12 @@ VBO Data Layout:
 | x y z | r g b | x y z | r g b | x y z | r g b |
   └───┘   └───┘
    Pos    Color
-
 ```
 
 **VAO Configuration:**
 
-* **Attribute 0:** Position ($x, y, z$)
-* **Attribute 1:** Color ($r, g, b$)
+- **Attribute 0:** Position ($x, y, z$)
+- **Attribute 1:** Color ($r, g, b$)
 
 ### Passing Data Across Pipeline Stages
 
@@ -122,7 +120,6 @@ Data descriptions within VAO match inputs of the first shader stage, passing out
             ▼
 [ Second Shader (Fragment) ] ──>  in vec3 ourColor;
                                  out vec4 FragColor;
-
 ```
 
 ---
@@ -164,9 +161,4 @@ void main() {
     
     gl_Position = position;
 }
-
-```
-
-```
-
 ```
