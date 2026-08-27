@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include "./dependencies/stb_image.h"
 #define STB_IMAGE_IMPLEMENTATION
+#include "./dependencies/stb_image.h"
 
 // note to my self STOP USING DIFFRENT CASE EITHER UPPER CASE OR LOWER SNAKE CASE BRO WHAT THE HELL !!!!!
 // or use a fucking lsp 
@@ -182,7 +182,8 @@ renderID createMesh(vertexAttributes attributesObject) {
   
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
-  renderID meshID;  
+
+  renderID meshID;
   meshID.VAO = VAO;
   meshID.EBO = EBO;
   meshID.VBO = VBO;
@@ -242,7 +243,33 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
 
 // TODO : A betch process for diffrent object
 
-void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter) {
+unsigned int loadTexture (char *imagePath) {
+  /* unsigned int texture; */
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  // set the texture wrapping/filtering options (on the currently bound texture object)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // load and generate the texture
+  int width, height, nrChannels;
+  stbi_set_flip_vertically_on_load(true); // Flip Y-axis so textures aren't upside down
+  unsigned char *data = stbi_load(imagePath, &width, &height, &nrChannels, 0);
+  if (data){
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else{
+    printf("Failed to load texture");
+  }
+  stbi_image_free(data);
+
+  return texture;
+}
+
+void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   float timeValue = glfwGetTime();
@@ -251,21 +278,20 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
   glUseProgram(shaderProgram);
   // glUniform4f for GLOBAL variables between shader programms
   glUniform1f(vertexColorLocation,timeValue);
-  
+
+  // texture stuff
+  if (texture) {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+  }
+  // TODO Render more then 1 object ....
   glBindVertexArray(VAO);
-  // bro stop these fucking magic numbers what does 0 or 3 means ???? 
+  // bro stop these fucking magic numbers what does 0 or 3 means ????
   glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
   // glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
 }
 
-
-
-// void loadTexture (renderID renderObject , char *imagePath) {
-//
-//
-//
-// } 
 
 int main() {
   
@@ -273,50 +299,60 @@ int main() {
   // vertices Stuff (maybe move this shit somewhere else for better reading = )   
   // maybe using inline function to init stuff ? 
   ////////////////////////////////////////////////////////////////////
-  // for VBO
-  // TODO : how to implement Object like cubes ????
-  /* float vertices[] = { */
-  /*   // positions          // colors           // texture coords  --> Attributes  */
-  /*    0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f, // top right */
-  /*    0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.55f, 0.45f, // bottom right */
-  /*   -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.45f, 0.45f, // bottom left */
-  /*   -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.45f, 0.55f  // top left  */
-  /* }; */
-
-  /* // indices for EBO  */
-  /* unsigned int indices[] = {  // note that we start from 0! */
-  /*     0, 1, 3,   // first triangle */
-  /*     1, 2, 3    // second triangle */
-  /* }; */
+  // this shit i copyed from LLM to test it
+  // TODO create a math function that creates EBO indices and vertices cords array
+  // for cubes , triangle etc so i can create them dynamicly
   float vertices[] = {
-    -0.5, 0.5, 0.5, 1.0, 0.0, 0.0,// Front Top Left		- Red	- 0
-    0.5,  0.5, 0.5, 0.0, 1.0, 0.0,// Front Top Right		- Green	- 1
-    0.5, -0.5, 0.5, 0.0, 0.0, 1.0,// Front Bottom Right		- Blue	- 2
-    -0.5,-0.5, 0.5, 0.0, 1.0, 1.0,// Front Bottom Left		- Cyan	- 3
-    -0.5, 0.5,-0.5, 1.0, 0.0, 1.0,// Back Top Left		- Pink	- 4
-    0.5,  0.5,-0.5, 1.0, 1.0, 0.0,// Back Top Right		- Yellow- 5
-    0.5, -0.5,-0.5, 0.1, 0.1, 0.1,// Back Bottom Right		- White - 6
-    -0.5,-0.5,-0.5, 1.0, 1.0, 1.0,// Back Bottom Left		- Gray  - 7
-};
+    // Positions          // Colors           // Texture Coords (UV)
+    // Front face (+Z)
+    -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f,
 
+    // Back face (-Z)
+    -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,   0.0f, 0.0f,
+
+    // Left face (-X)
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.0f,   1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,   0.0f, 0.0f,
+
+    // Right face (+X)
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+
+    // Top face (+Y)
+    -0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,   0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,   0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+
+    // Bottom face (-Y)
+    -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,   0.0f, 1.0f
+  };
+
+// 36 indices total (6 faces * 2 triangles * 3 vertices)
 unsigned int indices[] = {
-  0,3,2,//Front
-  2,1,0,
-  1,5,6,//Right
-  6,2,1,
-  5,4,7,//Left
-  7,6,5,
-  4,7,3,//Back
-  3,0,4,
-  4,5,1,//Top
-  1,0,4,
-  3,2,6,//Bottom
-  6,7,3,
-};
+    0,  1,  2,      2,  3,  0,    // Front
+    4,  5,  6,      6,  7,  4,    // Back
+    8,  9,  10,     10, 11, 8,    // Left
+    12, 13, 14,     14, 15, 12,   // Right
+    16, 17, 18,     18, 19, 16,   // Top
+    20, 21, 22,     22, 23, 20    // Bottom
+  };
 
-
-  int attributeCounter = 2 ;
-  int size[] = {3, 3};
+  int attributeCounter = 3 ;
+  int size[] = { 3, 3 , 2};
   
   vertexAttributes triangle = {
     .vertices = vertices,  
@@ -338,7 +374,7 @@ unsigned int indices[] = {
   //////////////////////////////////
   // loadShaderProgram
   //////////////////////////////////
-  
+
   shaderInfo ShadersSourceCode[] = {
     {GL_VERTEX_SHADER, "shader/vertexshader.glsl"},
     {GL_FRAGMENT_SHADER , "shader/fragmentshaderSource.glsl"}
@@ -346,21 +382,26 @@ unsigned int indices[] = {
   
   size_t ShaderSourceCodeCount = sizeof(ShadersSourceCode) / sizeof(ShadersSourceCode[0]); 
   renderID meshIDstuff = createMesh(triangle);
-  unsigned int shaderProgram = loadShaderProgram(ShadersSourceCode, ShaderSourceCodeCount); 
+  unsigned int shaderProgram = loadShaderProgram(ShadersSourceCode, ShaderSourceCodeCount);
   
   if (shaderProgram == 0) {
     printf("function loadShaderProgram failed , have fun debuggin <3 \n");
     return -1 ;
-  } 
-  
+  }
+
+  //////////////////////////////////
+  // load Texture
+  //////////////////////////////////
+  char *pathToImage = "textures/test.jpg";
+  unsigned int texture = loadTexture(pathToImage);
   //////////////////////////////////
   // main loop obviously
   //////////////////////////////////
   
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
-    render(shaderProgram, meshIDstuff.VAO , indicesCounter);
-    glfwSwapBuffers(window); // fenster mgmt
+    render(shaderProgram, meshIDstuff.VAO , indicesCounter, texture);
+    glfwSwapBuffers(window); // fenster mgmt i dont really know what it does xD
     glfwPollEvents(); // input log que 
   }
   // cleanUP
