@@ -270,24 +270,29 @@ unsigned int loadTexture (char *imagePath) {
 }
 
 void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture) {
+
+  // Render Setup
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // Uniform Setup
   float timeValue = glfwGetTime();
-  int vertexColorLocation = glGetUniformLocation(shaderProgram, "time");
+  int timeID = glGetUniformLocation(shaderProgram, "time");
 
   glUseProgram(shaderProgram);
-  // glUniform4f for GLOBAL variables between shader programms
-  glUniform1f(vertexColorLocation,timeValue);
+  glUniform1f(timeID,timeValue);
 
   // texture stuff
   if (texture) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
   }
-  // TODO Render more then 1 object ....
   glBindVertexArray(VAO);
+  // TODO Render more then 1 object ....
+  for (int i = 0 ; i < 3 ; i++) {
+    glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
+  }
   // bro stop these fucking magic numbers what does 0 or 3 means ????
-  glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
   // glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
 }
@@ -299,9 +304,12 @@ int main() {
   // vertices Stuff (maybe move this shit somewhere else for better reading = )   
   // maybe using inline function to init stuff ? 
   ////////////////////////////////////////////////////////////////////
-  // this shit i copyed from LLM to test it
+
   // TODO create a math function that creates EBO indices and vertices cords array
   // for cubes , triangle etc so i can create them dynamicly
+
+
+  // this vertices i copyed from LLM to test it
   float vertices[] = {
     // Positions          // Colors           // Texture Coords (UV)
     // Front face (+Z)
@@ -353,7 +361,7 @@ unsigned int indices[] = {
 
   int attributeCounter = 3 ;
   int size[] = { 3, 3 , 2};
-  
+  /* glm_rotate(); */
   vertexAttributes triangle = {
     .vertices = vertices,  
     .indices = indices,
