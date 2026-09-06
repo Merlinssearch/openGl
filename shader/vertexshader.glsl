@@ -14,12 +14,12 @@ void main(){
                         -sin(time) * aPos.x + cos(time) * aPos.z,
                         1.0
                         );
-  transform  = vec4(
-                    transform.x ,
-                    cos(time) * transform.y - sin(time)*transform.z ,
-                    sin(time) * transform.y + cos(time)*transform.z ,
-                    1.0
-                    );
+      transform  = vec4(
+                        transform.x ,
+                        cos(time) * transform.y - sin(time)*transform.z ,
+                        sin(time) * transform.y + cos(time)*transform.z ,
+                        1.0
+                        );
   gl_Position = transform;
   ourColor = aColor; // set ourColor to the input color we got from the vertex data
   TexCoord = aTexCoord;

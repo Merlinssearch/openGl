@@ -22,6 +22,13 @@ typedef struct  {
   size_t indicesSize;
 }vertexAttributes;
 
+
+
+typedef struct {
+  // matrix transformation stuff
+  // if i want to render the same object multiple times
+}object;
+
 // Todo: implement EBO in create mesh
 typedef struct renderID {
   unsigned int VBO;
@@ -269,13 +276,15 @@ unsigned int loadTexture (char *imagePath) {
   return texture;
 }
 
-void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture) {
+void render(unsigned int shaderProgram , unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture) {
 
   // Render Setup
+  ////////////////////////////////////////////////////////////////////
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // Uniform Setup
+  ////////////////////////////////////////////////////////////////////
   float timeValue = glfwGetTime();
   int timeID = glGetUniformLocation(shaderProgram, "time");
 
@@ -283,15 +292,17 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
   glUniform1f(timeID,timeValue);
 
   // texture stuff
+  ////////////////////////////////////////////////////////////////////
   if (texture) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
   }
-  glBindVertexArray(VAO);
+
+  ////////////////////////////////////////////////////////////////////
   // TODO Render more then 1 object ....
-  for (int i = 0 ; i < 3 ; i++) {
+  /* for (int i = 0 ; i < 3 ; i++) { */
     glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
-  }
+  /* } */
   // bro stop these fucking magic numbers what does 0 or 3 means ????
   // glDrawArrays(GL_TRIANGLES, 0 , 3 );
 
