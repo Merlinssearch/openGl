@@ -295,7 +295,9 @@ unsigned int loadTexture (char *imagePath) {
 
 void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture, GLFWwindow *window){
   // Render Setup
-  glClearColor(sinf((float)glfwGetTime()), 0.3f, 0.3f, 1.0f);
+  float sinewafe = sinf((float)glfwGetTime()+1)/2;
+  float sinewafe2 = cosf((float)glfwGetTime()+1)/2;
+  glClearColor(sinewafe, sinewafe2, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   // Setup uniform
   glUseProgram(shaderProgram);
@@ -303,8 +305,8 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
   ///////////////////////////////////////////////////////////////////////////////
   //           MVP
   ///////////////////////////////////////////////////////////////////////////////
-
-    // view stuff
+  // view stuff
+  ///////////////////////////////////////////////////////////////////////////////
   mat4 projection;
   glm_mat4_identity(projection); // removes garbes allocation and set diagonal 1s
   int windowWidth, windowHeight;
@@ -313,23 +315,31 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
   GLint transformid1 = glGetUniformLocation(shaderProgram, "projection");
   glUniformMatrix4fv(transformid1, 1, GL_FALSE, (float *)projection);
 
+  ///////////////////////////////////////////////////////////////////////////////
   // projection stuff
+  ///////////////////////////////////////////////////////////////////////////////
+  // note: currently we set the projection matrix each frame,
+  // but since the projection matrix rarely changes it's often
+  // // best practice to set it outside the main loop only once.
+  float zoom = sinf((float)glfwGetTime()-10)*2;
   mat4 view;
   glm_mat4_identity(view); // removes garbes allocation and set diagonal 1s
-  vec3 vector = {0.0f, 0.0f, -3.0f};
+  vec3 vector = {0.0f, 0.0f, zoom};
   glm_translate(view , vector);
   GLint transformid2 = glGetUniformLocation(shaderProgram, "view");
   glUniformMatrix4fv(transformid2, 1, GL_FALSE, (float *)view);
-  ///////////////////////////////////////////////////////////////////////////////
 
+  ///////////////////////////////////////////////////////////////////////////////
   // texture stuff
+  ///////////////////////////////////////////////////////////////////////////////
   if (texture) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
   }
   glBindVertexArray(VAO);
 
-  // TODO Render more then 1 object ....
+  // TODO outsource / abstract this out of this render function
+  // or split the render function idk how i will implment this
   for (int i = 0 ; i < 10 ; i++ ) {
     mat4 model;
     glm_mat4_identity(model); // removes garbes allocation and set diagonal 1s
@@ -339,12 +349,9 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
     glUniformMatrix4fv(transformid, 1, GL_FALSE, (float *)model);
     glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
   }
-  glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
-
   // bro stop these fucking magic numbers what does 0 or 3 means ????
   // glDrawArrays(GL_TRIANGLES, 0 , 3 );
 }
-
 
 int main() {
 
@@ -407,9 +414,12 @@ int main() {
     20, 21, 22,     22, 23, 20    // Bottom
   };
 
+  int attributeCounter = 3;
+  int position_size    = 3;
+  int color_size       = 3;
+  int texture_size     = 2;
 
-  int attributeCounter = 3 ;
-  int size[] = { 3, 3 , 2};
+  int size[] = { position_size , color_size , texture_size};
   /* glm_rotate(); */
   vertexAttributes triangle = {
     .vertices = vertices,
@@ -420,6 +430,7 @@ int main() {
     .indicesSize = sizeof(indices),
   };
   unsigned int indicesCounter =  triangle.indicesSize / sizeof(unsigned int);
+
   //////////////////////////////////
   // Window Stuff
   //////////////////////////////////
