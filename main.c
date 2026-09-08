@@ -324,8 +324,15 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
   float zoom = sinf((float)glfwGetTime()-10)*2;
   mat4 view;
   glm_mat4_identity(view); // removes garbes allocation and set diagonal 1s
-  vec3 vector = {0.0f, 0.0f, zoom};
-  glm_translate(view , vector);
+  /* vec3 vector = {0.0f, 0.0f, zoom}; */
+  /* glm_translate(view , vector); */
+  float radius = 3.0f;
+  float camx = cosf(glfwGetTime()) * radius;
+  float camz = sinf(glfwGetTime()) * radius;
+  vec3 upvector = {0.0f , 1.0f , 0.0f};
+  vec3 center = {0.0f , 0.0f , 0.0f};
+  vec3 circle  = {camx , 0.0f , camz};
+  glm_lookat(circle, center, upvector, view);
   GLint transformid2 = glGetUniformLocation(shaderProgram, "view");
   glUniformMatrix4fv(transformid2, 1, GL_FALSE, (float *)view);
 
