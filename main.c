@@ -1,24 +1,40 @@
 #include "glad/glad.h"
 #include <GLFW/glfw3.h> 
-#include <cglm/cglm.h> 
+#include <cglm/cam.h>
+#include <cglm/cglm.h>
+#include <cglm/util.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <math.h> 
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <math.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "./dependencies/stb_image.h"
 
 // note to my self STOP USING DIFFRENT CASE EITHER UPPER CASE OR LOWER SNAKE CASE BRO WHAT THE HELL !!!!!
-// or use a fucking lsp 
+// or use a fucking lsp
+
+vec3 cubePositions[] = {
+    {0.0f, 0.0f, 0.0f},
+    {2.0f, 5.0f, -15.0f},
+    {-1.5f, -2.2f, -2.5f},
+    {-3.8f, -2.0f, -12.3f},
+    {2.4f, -0.4f, -3.5f},
+    {-1.7f, 3.0f, -7.5f},
+    {1.3f, -2.0f, -2.5f},
+    {1.5f, 2.0f, -2.5f},
+    {1.5f, 0.2f, -1.5f},
+    {-1.3f, 1.0f, -1.5f}
+};
+
 
 typedef struct  {
   float *vertices;
-  int attributeCounter; // 
+  int attributeCounter; //
   int *size;
   size_t bufferSize;
-  unsigned int *indices; 
+  unsigned int *indices;
   size_t indicesSize;
 }vertexAttributes;
 
@@ -26,21 +42,31 @@ typedef struct  {
 typedef struct renderID {
   unsigned int VBO;
   unsigned int VAO;
-  unsigned int EBO; 
+  unsigned int EBO;
 }renderID;
 
 // For Shader SourceCode
 typedef struct shaderInfo {
   unsigned int type;
-  const char *filePath; 
+  const char *filePath;
 }shaderInfo;
 
-// dont forget openGL fails sometimes silently yeaa 
+typedef struct object {
+    mat4 transform;
+    /* mat4 transform; */
+    /* glm_mat4_identity(transform); //  that defines the matrix */
+    /* glm_rotate(transform, (float)glfwGetTime(), (vec3){1.0f, 1.0f, 1.0f}); */
+    /* GLint transformid = glGetUniformLocation(shaderProgram, "transform"); */
+    /* glUniformMatrix4fv(transformid, 1, GL_FALSE, (float *)transform); */
+    vec4 worldPosition;
+}object;
+
+// dont forget openGL fails sometimes silently yeaa
 
 void print_opengl_infos() {
-  printf("==================================================================\n"); 
+  printf("==================================================================\n");
   printf("Debug Info \n");
-  printf("==================================================================\n"); 
+  printf("==================================================================\n");
   printf("GPU Vendor                   : %s\n", glGetString(GL_VENDOR));
   printf("GPU Renderer                 : %s\n", glGetString(GL_RENDERER));
   printf("GL Version                   : %s\n", glGetString(GL_VERSION));
@@ -61,16 +87,16 @@ void print_opengl_infos() {
   GLint max_color_attachments;
   glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
   printf("Max FBO Color Attachments    : %d\n", max_color_attachments);
-  
+
   GLint max_uniforms;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &max_uniforms);
   printf("Max Vertex Uniform Components: %d\n", max_uniforms);
-  
-  printf("==================================================================\n"); 
+
+  printf("==================================================================\n");
 }
 
 
-// yea the only input we need is to escape from here aaahhhh xD 
+// yea the only input we need is to escape from here aaahhhh xD
 void processInput(GLFWwindow *window){
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
       glfwSetWindowShouldClose(window, true);
@@ -82,7 +108,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 // TODO : How do i get the current height and width
-// if its dynamic , like in hyprland 
+// if its dynamic , like in hyprland
 
 GLFWwindow* init_Window() {
   if (!glfwInit()) {
@@ -93,7 +119,7 @@ GLFWwindow* init_Window() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
-  
+
   GLFWwindow *window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
   if (window == NULL){
       printf("Failed to create GLFW window\n");
@@ -101,19 +127,18 @@ GLFWwindow* init_Window() {
       return NULL;
   }
   glfwMakeContextCurrent(window);
-  
+
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
       printf("Failed to initialize GLAD\n");
       return NULL;
-  } 
-  
+  }
+
   glViewport(0, 0, 800, 600);
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glEnable(GL_DEPTH_TEST); // for 3d stuff
   return window;
-} 
-
-// dont forget to free this 
+}
+// dont forget to free this
 
 char *getFileContent (char *file) {
   struct stat st;
@@ -122,11 +147,11 @@ char *getFileContent (char *file) {
     printf("Fehler: stat konnte die Datei nicht lesen!\n");
     return NULL;
   }
-  long size = st.st_size;  
-  
+  long size = st.st_size;
+
   FILE *fptr;
   fptr = fopen(file, "rb");
-  
+
   char *content = (char*)malloc(size * sizeof(char) + 1);
   if (content == NULL) {
     printf("allocation failed\n");
@@ -136,50 +161,50 @@ char *getFileContent (char *file) {
   if(fptr != NULL) {
     fread(content, sizeof(char) , size , fptr );
     content[size] = '\0';
-    fclose(fptr);  
+    fclose(fptr);
   }else {
     free(content);
     return NULL;
   }
-  
-  return content; 
-}  
 
-renderID createMesh(vertexAttributes attributesObject) {
-  
+  return content;
+}
+
+renderID create_Mesh(vertexAttributes attributesObject) {
+
   unsigned int VAO , VBO , EBO;
-  glGenVertexArrays(1, &VAO);   
+  glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
-  
-  glGenBuffers(1, &VBO);  
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);  
+
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
   glBufferData(GL_ARRAY_BUFFER, attributesObject.bufferSize , attributesObject.vertices, GL_STATIC_DRAW);
-  
+
   glGenBuffers(1, &EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, attributesObject.indicesSize, attributesObject.indices, GL_STATIC_DRAW);
 
   int stride = 0;
   for (int i = 0 ; i < attributesObject.attributeCounter ; i++) {
       stride += attributesObject.size[i];
-  } 
-  int offset = 0; 
+  }
+  int offset = 0;
   for (int id = 0 ; id < attributesObject.attributeCounter ; id++) {
     //////////////////////////////////////////////////////////
     // Definition : glVertexAttribPointer(index, size, type, normalized, stride, pointer);
     glVertexAttribPointer(id,
-                          attributesObject.size[id] , 
-                          GL_FLOAT, 
-                          GL_FALSE, 
-                          stride * sizeof(float), 
+                          attributesObject.size[id] ,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          stride * sizeof(float),
                           (void*)(offset*sizeof(float))
                           );
     //////////////////////////////////////////////////////////
     glEnableVertexAttribArray(id);
     offset += attributesObject.size[id];
-  } 
-  
+  }
+
   glBindVertexArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -191,15 +216,15 @@ renderID createMesh(vertexAttributes attributesObject) {
 }
 
 unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSourceCodeCount) {
-  
-  unsigned int shaderProgram = glCreateProgram(); 
-  
+
+  unsigned int shaderProgram = glCreateProgram();
+
   char infoLog[512];
   int success;
   for (int i = 0 ; i < ShaderSourceCodeCount ; i++ ) {
     // do i need to free ShadersSource ?
-    // i think so bro , its the pointer that getFileContent gives u back and the 
-    // function allocate some memory on the heap 
+    // i think so bro , its the pointer that getFileContent gives u back and the
+    // function allocate some memory on the heap
     const char *ShaderSource = getFileContent((char*)ShadersSourceCode[i].filePath);
     if (!ShaderSource){
       printf("loadShaderProgram failed !\n");
@@ -209,26 +234,25 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
     glShaderSource(Shader, 1, &ShaderSource, NULL);
     glCompileShader(Shader);
     free((char*)ShaderSource);
-    ShaderSource = NULL;   
+    ShaderSource = NULL;
 
     glGetShaderiv(Shader, GL_COMPILE_STATUS, &success);
     if (!success) {
       glGetShaderInfoLog(Shader, 512, NULL, infoLog);
       printf("Vertex Shader Error:\n%s\n", infoLog);
-      // in openGL 0 is an invalid id 
+      // in openGL 0 is an invalid id
       // we use that later to exit the program
       glDeleteShader(Shader);
       glDeleteProgram(shaderProgram);
       return 0;
     }
     glAttachShader(shaderProgram, Shader);
-    glDeleteShader(Shader);  
+    glDeleteShader(Shader);
     // ps. is this the right time to delete them ?? ?!? ?
-    // because when its compiled i dont need the source code or am i dumb ? 
-  } 
-  
+    // because when its compiled i dont need the source code or am i dumb ?
+  }
   glLinkProgram(shaderProgram);
-    
+
   glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
   if (!success) {
       glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
@@ -237,7 +261,7 @@ unsigned int loadShaderProgram (shaderInfo ShadersSourceCode[], int ShaderSource
   }
   // shit i forgot why i comment this
   // glDeleteShader(vertexShader);
-  // glDeleteShader(fragmentShader);   
+  // glDeleteShader(fragmentShader);
   return shaderProgram;
 }
 
@@ -269,18 +293,34 @@ unsigned int loadTexture (char *imagePath) {
   return texture;
 }
 
-void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture) {
-
+void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indiciesCounter , unsigned int texture, GLFWwindow *window){
   // Render Setup
-  glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+  glClearColor(sinf((float)glfwGetTime()), 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  // Uniform Setup
-  float timeValue = glfwGetTime();
-  int timeID = glGetUniformLocation(shaderProgram, "time");
-
+  // Setup uniform
   glUseProgram(shaderProgram);
-  glUniform1f(timeID,timeValue);
+
+  ///////////////////////////////////////////////////////////////////////////////
+  //           MVP
+  ///////////////////////////////////////////////////////////////////////////////
+
+    // view stuff
+  mat4 projection;
+  glm_mat4_identity(projection); // removes garbes allocation and set diagonal 1s
+  int windowWidth, windowHeight;
+  glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+  glm_perspective(glm_rad(90.0f), (float)windowWidth / (float)windowHeight, 0.1f, 100.0f, projection);
+  GLint transformid1 = glGetUniformLocation(shaderProgram, "projection");
+  glUniformMatrix4fv(transformid1, 1, GL_FALSE, (float *)projection);
+
+  // projection stuff
+  mat4 view;
+  glm_mat4_identity(view); // removes garbes allocation and set diagonal 1s
+  vec3 vector = {0.0f, 0.0f, -3.0f};
+  glm_translate(view , vector);
+  GLint transformid2 = glGetUniformLocation(shaderProgram, "view");
+  glUniformMatrix4fv(transformid2, 1, GL_FALSE, (float *)view);
+  ///////////////////////////////////////////////////////////////////////////////
 
   // texture stuff
   if (texture) {
@@ -288,21 +328,29 @@ void render(unsigned int shaderProgram ,unsigned int VAO ,  unsigned int indicie
     glBindTexture(GL_TEXTURE_2D, texture);
   }
   glBindVertexArray(VAO);
+
   // TODO Render more then 1 object ....
-  for (int i = 0 ; i < 3 ; i++) {
+  for (int i = 0 ; i < 10 ; i++ ) {
+    mat4 model;
+    glm_mat4_identity(model); // removes garbes allocation and set diagonal 1s
+    glm_translate(model , cubePositions[i]);
+    glm_rotate(model, (float)glfwGetTime() , (vec3){1.0f, 1.0f, 1.0f});
+    GLint transformid = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(transformid, 1, GL_FALSE, (float *)model);
     glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
   }
+  glDrawElements(GL_TRIANGLES , indiciesCounter , GL_UNSIGNED_INT, 0);
+
   // bro stop these fucking magic numbers what does 0 or 3 means ????
   // glDrawArrays(GL_TRIANGLES, 0 , 3 );
-
 }
 
 
 int main() {
-  
+
   ////////////////////////////////////////////////////////////////////
-  // vertices Stuff (maybe move this shit somewhere else for better reading = )   
-  // maybe using inline function to init stuff ? 
+  // vertices Stuff (maybe move this shit somewhere else for better reading = )
+  // maybe using inline function to init stuff ?
   ////////////////////////////////////////////////////////////////////
 
   // TODO create a math function that creates EBO indices and vertices cords array
@@ -350,7 +398,7 @@ int main() {
   };
 
 // 36 indices total (6 faces * 2 triangles * 3 vertices)
-unsigned int indices[] = {
+  unsigned int indices[] = {
     0,  1,  2,      2,  3,  0,    // Front
     4,  5,  6,      6,  7,  4,    // Back
     8,  9,  10,     10, 11, 8,    // Left
@@ -359,39 +407,38 @@ unsigned int indices[] = {
     20, 21, 22,     22, 23, 20    // Bottom
   };
 
+
   int attributeCounter = 3 ;
   int size[] = { 3, 3 , 2};
   /* glm_rotate(); */
   vertexAttributes triangle = {
-    .vertices = vertices,  
+    .vertices = vertices,
     .indices = indices,
     .attributeCounter = attributeCounter,
-    .size = size,  // Attribute size 
+    .size = size,  // Attribute size
     .bufferSize = sizeof(vertices),
     .indicesSize = sizeof(indices),
   };
   unsigned int indicesCounter =  triangle.indicesSize / sizeof(unsigned int);
   //////////////////////////////////
-  // Window Stuff  
+  // Window Stuff
   //////////////////////////////////
 
-  GLFWwindow *window = init_Window(); 
+  GLFWwindow *window = init_Window();
   if (!window) return -1;
   print_opengl_infos();
-  
+
   //////////////////////////////////
   // loadShaderProgram
   //////////////////////////////////
-
   shaderInfo ShadersSourceCode[] = {
     {GL_VERTEX_SHADER, "shader/vertexshader.glsl"},
     {GL_FRAGMENT_SHADER , "shader/fragmentshaderSource.glsl"}
   };
-  
-  size_t ShaderSourceCodeCount = sizeof(ShadersSourceCode) / sizeof(ShadersSourceCode[0]); 
-  renderID meshIDstuff = createMesh(triangle);
+  size_t ShaderSourceCodeCount = sizeof(ShadersSourceCode) / sizeof(ShadersSourceCode[0]);
+  renderID meshIDstuff = create_Mesh(triangle);
   unsigned int shaderProgram = loadShaderProgram(ShadersSourceCode, ShaderSourceCodeCount);
-  
+
   if (shaderProgram == 0) {
     printf("function loadShaderProgram failed , have fun debuggin <3 \n");
     return -1 ;
@@ -405,26 +452,23 @@ unsigned int indices[] = {
   //////////////////////////////////
   // main loop obviously
   //////////////////////////////////
-  
+
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
-    render(shaderProgram, meshIDstuff.VAO , indicesCounter, texture);
+    render(shaderProgram, meshIDstuff.VAO , indicesCounter, texture, window);
     glfwSwapBuffers(window); // fenster mgmt i dont really know what it does xD
-    glfwPollEvents(); // input log que 
+    glfwPollEvents(); // input log que
   }
   // cleanUP
-  // maybe better in create mesh function ? 
-  
   glDeleteVertexArrays(1, &(meshIDstuff.VAO));
   glDeleteBuffers(1, &(meshIDstuff.VBO));
   glDeleteProgram(shaderProgram);
   glfwTerminate();
-  return 0; 
+  return 0;
 }
 
-// PS research 
-// 1 .how to handle Memory leaks or perse Memory in GPU 
-// glDeleteBuffers(1, &(meshIDstuff.VBO)); it seems you could delelte the VBO in create Mesh 
-// because the VAO hold the infromation where the memory is 
-// 2. glMultiDrawElementsIndirect for multi stuff yea 
-
+// PS research
+// 1 .how to handle Memory leaks or perse Memory in GPU
+// glDeleteBuffers(1, &(meshIDstuff.VBO)); it seems you could delelte the VBO in create Mesh
+// because the VAO hold the infromation where the memory is
+// 2. glMultiDrawElementsIndirect for multi stuff yea
