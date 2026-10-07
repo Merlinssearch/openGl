@@ -67,7 +67,6 @@ typedef struct direction {
 
 // dont forget openGL fails sometimes silently yeaa
 
-
 void print_opengl_infos() {
   printf("==================================================================\n");
   printf("Debug Info \n");
@@ -415,7 +414,7 @@ static inline vertexAttributes allocate_vertexAttributesObject() {
   // garbabe , delete / rewrite this funciton later
 
   /* float *vertices = (float*)malloc(sizeof(float)*33); */
-  static float vertices[] = {
+  float vertices[] = {
     // Positions          // Colors           // Texture Coords (UV)
     // Front face (+Z)
     -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
@@ -455,7 +454,7 @@ static inline vertexAttributes allocate_vertexAttributesObject() {
   };
 
 // 36 indices total (6 faces * 2 triangles * 3 vertices)
-  static unsigned int indices[] = {
+  unsigned int indices[] = {
     0,  1,  2,      2,  3,  0,    // Front
     4,  5,  6,      6,  7,  4,    // Back
     8,  9,  10,     10, 11, 8,    // Left
@@ -465,12 +464,11 @@ static inline vertexAttributes allocate_vertexAttributesObject() {
   };
 
   int attributeCounter = 3;
-  /* int position_size    = 3; */
-  /* int color_size       = 3; */
-  /* int texture_size     = 2; */
-  /* static int size[] = { position_size , color_size , texture_size}; */
+  int position_size    = 3;
+  int color_size       = 3;
+  int texture_size     = 2;
 
-  static int size[] = { 3 , 3 , 2};
+  int size[] = { position_size , color_size , texture_size};
   /* glm_rotate(); */
   vertexAttributes triangle = {
       .vertices = vertices,
